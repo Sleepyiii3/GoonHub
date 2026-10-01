@@ -176,3 +176,20 @@ To start the project, the agent should assume:
 ---
 
 _This file is intended to be a living document. As conventions evolve, please update this file._
+
+---
+
+## Cursor Cloud specific instructions
+
+PostgreSQL 18 and Meilisearch 1.33 are already installed and started by the environment. Do not use Docker Compose for them. Dev credentials match `docker/config-dev.yaml`: database `goonhub` / `goonhub` / `goonhub_dev_password` on `127.0.0.1:5432`, Meilisearch at `http://127.0.0.1:7700` with master key `goonhub_dev_master_key`.
+
+From the repo root:
+
+- Backend: `GOONHUB_CONFIG=docker/config-dev.yaml go run ./cmd/server` (port 8080). `config-dev.yaml` is under `docker/`, not the repo root.
+- Frontend: `cd web && bun run dev` (port 3000). Open `http://localhost:3000`. `server.allowed_origins` lists `localhost` only, so `127.0.0.1:3000` login requests are rejected.
+- Dev login: `admin` / `admin`.
+- `//go:embed all:web/dist` requires at least one file in `web/dist` before `go run`, `go build`, or `make test`. `make setup-test` creates that stub. Nitro writes `web/dist` while the dev server is running, so recreate the stub if embed fails after the frontend has been started.
+- Tests and lint: `make test-race` and `cd web && bun run lint`.
+- Go on PATH is 1.24.12. Frontend package manager is Bun 1.3.8.
+
+The sibling Chatterbox-TTS-Server checkout uses the Python 3.10 virtualenv at `/opt/chatterbox-venv` (CPU PyTorch). Run `/opt/chatterbox-venv/bin/python server.py` from that repo (port 8004). The first launch downloads Hugging Face weights.
