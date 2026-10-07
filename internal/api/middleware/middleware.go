@@ -5,6 +5,7 @@ import (
 	"goonhub/internal/core"
 	"goonhub/internal/infrastructure/logging"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -43,14 +44,38 @@ func Setup(r *gin.Engine, logger *logging.Logger, allowedOrigins []string, envir
 			}
 		}
 	}
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     allowedOrigins,
+	corsConfig := cors.Config{
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
-	}))
+	}
+	if environment == "production" {
+		corsConfig.AllowOrigins = allowedOrigins
+	} else {
+		// Dev browsers use localhost or 127.0.0.1, and port forwards may use another local port.
+		// A rejected origin is an empty 403, which the login page then fails to parse as JSON.
+		configured := make(map[string]struct{}, len(allowedOrigins))
+		for _, origin := range allowedOrigins {
+			configured[origin] = struct{}{}
+		}
+		corsConfig.AllowOriginFunc = func(origin string) bool {
+			if _, ok := configured[origin]; ok {
+				return true
+			}
+			parsed, err := url.Parse(origin)
+			if err != nil {
+				return false
+			}
+			if parsed.Scheme != "http" && parsed.Scheme != "https" {
+				return false
+			}
+			host := parsed.Hostname()
+			return host == "localhost" || host == "127.0.0.1" || host == "::1"
+		}
+	}
+	r.Use(cors.New(corsConfig))
 }
 
 // SecurityHeaders adds essential security headers to all responses.

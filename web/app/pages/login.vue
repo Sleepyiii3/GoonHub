@@ -20,13 +20,17 @@ const mounted = ref(false);
 const route = useRoute();
 const usernameInput = ref<HTMLInputElement>();
 
-onMounted(() => {
+onMounted(async () => {
     requestAnimationFrame(() => {
         mounted.value = true;
     });
     nextTick(() => {
         usernameInput.value?.focus();
     });
+    if (import.meta.dev && 'serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map((registration) => registration.unregister()));
+    }
 });
 
 const handleLogin = async () => {

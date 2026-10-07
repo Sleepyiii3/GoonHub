@@ -4,6 +4,18 @@ import type { User, AuthResponse, ErrorResponse } from '~/types/auth';
 // Configuration constants
 const VALIDATION_CACHE_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 
+async function readJsonBody<T>(response: Response): Promise<T | null> {
+    const text = await response.text();
+    if (!text) {
+        return null;
+    }
+    try {
+        return JSON.parse(text) as T;
+    } catch {
+        return null;
+    }
+}
+
 export const useAuthStore = defineStore(
     'auth',
     () => {
@@ -39,12 +51,10 @@ export const useAuthStore = defineStore(
                     body: JSON.stringify({ username, password }),
                 });
 
-                if (!response.ok) {
-                    const err: ErrorResponse = await response.json();
-                    throw new Error(err.error || 'Login failed');
+                const data = await readJsonBody<AuthResponse & ErrorResponse>(response);
+                if (!response.ok || !data?.user) {
+                    throw new Error(data?.error || 'Login failed');
                 }
-
-                const data: AuthResponse = await response.json();
                 // Token is set in HTTP-only cookie by server (not in response body)
                 user.value = data.user;
                 lastValidatedAt.value = Date.now();
