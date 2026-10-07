@@ -123,7 +123,9 @@ export default defineNuxtConfig({
             ],
         },
         devOptions: {
-            enabled: true,
+            // A dev service worker intercepts /api and, once its script is missing,
+            // login receives an empty body and fails JSON parsing.
+            enabled: false,
             type: 'module',
         },
     },
